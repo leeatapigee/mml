@@ -8,6 +8,7 @@ Message Manipulation Language
 2. Where you want to do the extract and/or assign work, place a JavaScript callout policy.
 3. Set the JavaScript ResourceURL to refer to mml.js:
 ````<ResourceURL>jsc://mml.js</ResourceURL>````
+
 4. Use a Property named script to manipulate messages and variables:
 ````
     <Properties>

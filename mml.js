@@ -8,7 +8,8 @@
 // retrieve DSL script from the JavaScript callout policy's script property
 var script = properties.script
 
-var vars = {}						// keep track of variables referenced; necessary?
+var vars = {}						// keep track of variables
+//vars['message'] = context.getMessage('message.content')   // preload current message into vars
 
 var lines = script.split('\n')		// break the script up into lines
 
@@ -18,20 +19,28 @@ lines.forEach(function(line) {
   // remove comments indicated by # - TODO be smarter about this, in case # needs to be part of the script
   var comment = line.indexOf('#')
   if( comment >= 0 ) {
-    print('before removing comment', line)
     line = line.slice(0, comment)
-    print('after removing comment', line)
   }
 
-  if( line.trim().length === 0 ) {
-    // if line is empty, skip to the next line
-  } else {
+  if( line.trim().length !== 0 ) {
     var terms = line.split(' ')	// break the line up into terms
+    if( line.indexOf('function:') >=0 || line.indexOf('code:') >= 0 ) {
+      // TODO this quick hack will fail if the the other terms appear within the code block
+      // reparse to isolate code
+      var code = line.replace(terms[0], '').replace(terms[terms.length-1], '').trim()
+      print('isolated code', code)
+      line = code
+      terms[1] = code
+      terms[2] = terms[terms.length-1]
+    }
 
     switch( terms[0] ) {
       case 'msg':
       case 'message':
-        vars[terms[1]] = new Request()		// create a new request object with the provided name
+        // TODO not sure how to create a new Message object in JavaScript, so the
+        // TODO current implementation makes a copy of the current message object
+        //vars[terms[1]] = new Request()		// create a new request object with the provided name
+        context.setVariable(terms[1], context.getVariable('message'))
         break
 
       case 'copy':
@@ -73,13 +82,10 @@ function getValue(term) {
   var value
 
   if( typeof parts === 'object' ) {
-    print('getting value of object', parts)
-    var x = vars[parts.msgId]
-    value = eval('x.'+imply(parts.msgPart))
+    value = parts.value
   } else {
-   	value = context.getVariable(term)
+    value = context.getVariable(parts)
   }
-
   print('getValue: extracted value of', term, 'is', value)
   return value
 }
@@ -87,18 +93,15 @@ function getValue(term) {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // the AssignMessage portion of the script
+// sets target to value
 function setValue(target, value) {
   print('setValue:', target, value)
-  var parts = imply(target)
+  //var tgt = imply(target)
+  //var val = imply(value)
 
-  if( typeof parts === 'object' ) {
-  	print('setting value of object', parts, 'to', value)
-    var x = vars[parts.msgId]
-    var targ = eval('x.'+imply(parts.msgPart)+'="'+value+'"')
-  } else {
-  	print('setting value of', target, 'to', value)
-  	context.setVariable(target, value)
-  }
+  // target and value are both "scalars"
+	print('setting value of', target, 'to', value)
+	context.setVariable(target, value)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -111,8 +114,9 @@ function imply(term) {
   var sections = term.split('.')
 
   if( sections.length && vars[sections[0]] ) {
+    // we should currently never enter this section, because vars should be empty
     // if the first part of the term is the name of a variable created in this script...
-    var theRest = term.slice(sections[0].length+1)		// everything after the name of the message variable and the period
+    var theRest = term.slice(sections[0].length+1)		// everything following the name of the message variable and the period
     result = {msgId:sections[0], msgPart:theRest}		// this is how a part of a created message object is returned to the caller
   }
 
@@ -132,18 +136,11 @@ function imply(term) {
   else if( term.indexOf('q.') === 0 )
     result = 'message.queryparam.' + term.substr(2)
 
-  else if( term.indexOf('message:') === 0 || term.indexOf('msg:') === 0 || term.indexOf('m:') === 0 ) {
-    var parts = term.split(':')
-    if( parts.length > 1 ) {
-      var period = parts[1].indexOf('.')
-      if( period === -1 ) {
-        result = {msgId:parts[1], msgPart:null}
-      } else {
-        result = {msgId:parts[1].slice(0,period), msgPart:parts[1].slice(period+1)}
-      }
-    } else {
-      print('huh???')
-    }
+  else if( term.indexOf('function:') === 0 || term.indexOf('code:') === 0 ) {
+    var colon = term.indexOf(':')
+    var code = term.slice(colon+1)
+    print('evaluating code', code)
+    result = {value:eval(code)}
   }
 
   else {
