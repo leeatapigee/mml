@@ -16,6 +16,10 @@ Message Manipulation Language
         copy request.verb myverb   # create a flow variable
         copy myverb request.header.abc   # create a header
         copy request.queryparam.x request.header.xquery   # copy a queryparam to a header
+        message created
+        copy queryparam.x created.header.xQuery
+        copy code:(new Date()).toString() created.header.computedDate
+        delete q.x
       </Property>
 </Properties>
 ````
@@ -23,6 +27,8 @@ Message Manipulation Language
 **Commands**
 
 - **copy src tgt**
+- **copy code:(new Date()).toString() tgt**
+  - Currently accepts code in the src term only, indicated by the leading "code:".  This will break if the code contains the contents of the other two terms, e.g. _copy code:makeacopy() header.x_ will break, because very stupid parser.
 - **delete tgt**
 - **comments** are initiated by a # at any point in a line
 
