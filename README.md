@@ -52,9 +52,6 @@ Message Manipulation Language
 
 **Issues and enhancements**
 
-- Fix problem with storing message objects created here
-
-
 - Support for regex
 - Support for form and body/payload variables
 - Support for JSONPath
