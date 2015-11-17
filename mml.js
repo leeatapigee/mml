@@ -7,22 +7,19 @@
 
 // retrieve DSL script from the JavaScript callout policy's script property
 var script = properties.script
-
-var vars = {}						// keep track of variables
-//vars['message'] = context.getMessage('message.content')   // preload current message into vars
-
 var lines = script.split('\n')		// break the script up into lines
 
+// interpret each line of script
 lines.forEach(function(line) {
   line = line.trim()
 
   // remove comments indicated by # - TODO be smarter about this, in case # needs to be part of the script
   var comment = line.indexOf('#')
   if( comment >= 0 ) {
-    line = line.slice(0, comment)
+    line = line.slice(0, comment).trim()
   }
 
-  if( line.trim().length !== 0 ) {
+  if( line.length !== 0 ) {
     var terms = line.split(' ')	// break the line up into terms
     if( line.indexOf('function:') >=0 || line.indexOf('code:') >= 0 ) {
       // TODO this quick hack will fail if the the other terms appear within the code block
@@ -39,7 +36,6 @@ lines.forEach(function(line) {
       case 'message':
         // TODO not sure how to create a new Message object in JavaScript, so the
         // TODO current implementation makes a copy of the current message object
-        //vars[terms[1]] = new Request()		// create a new request object with the provided name
         context.setVariable(terms[1], context.getVariable('message'))
         break
 
@@ -53,8 +49,7 @@ lines.forEach(function(line) {
         break
 
       case 'delete':
-        // TODO need to handle msg:header.xyz syntax
-        context.removeVariable(imply(terms[1]))
+        context.removeVariable(evaluate(terms[1]))
         break
 
       default:
@@ -65,20 +60,12 @@ lines.forEach(function(line) {
   }
 })
 
-// to finalize, write all created variables to the context
-for (var v in vars) {
-  if (vars.hasOwnProperty(v)) {
-    print('wrap up',v,'=',vars[v])
-    context.setVariable(v, vars[v])		// TODO this is not saving a usable request object
-  }
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // the ExtractVariable portion of the script
 function getValue(term) {
   print('getValue:', term)
-  var parts = imply(term)
+  var parts = evaluate(term)
   var value
 
   if( typeof parts === 'object' ) {
@@ -96,8 +83,8 @@ function getValue(term) {
 // sets target to value
 function setValue(target, value) {
   print('setValue:', target, value)
-  //var tgt = imply(target)
-  //var val = imply(value)
+  //var tgt = evaluate(target)
+  //var val = evaluate(value)
 
   // target and value are both "scalars"
 	print('setting value of', target, 'to', value)
@@ -106,18 +93,15 @@ function setValue(target, value) {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // allow for shorthand syntax
-function imply(term) {
+function evaluate(term) {
   var result = term
 
-  print('imply of', term)
+  print('evaluating', term)
 
   var sections = term.split('.')
 
-  if( sections.length && vars[sections[0]] ) {
-    // we should currently never enter this section, because vars should be empty
-    // if the first part of the term is the name of a variable created in this script...
-    var theRest = term.slice(sections[0].length+1)		// everything following the name of the message variable and the period
-    result = {msgId:sections[0], msgPart:theRest}		// this is how a part of a created message object is returned to the caller
+  if( false ) {
+    // readability hack to make everything following this begin with an "else"
   }
 
   else if( term.indexOf('header.') === 0 )
@@ -144,9 +128,9 @@ function imply(term) {
   }
 
   else {
-
+    // any default processing needed here?
   }
 
-  print('imply('+term+') became', result)
+  print('evaluate('+term+') became', result)
   return result
 }

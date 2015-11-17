@@ -29,6 +29,8 @@ Message Manipulation Language
 - **copy src tgt**
 - **copy code:(new Date()).toString() tgt**
   - Currently accepts code in the src term only, indicated by the leading "code:".  This will break if the code contains the contents of the other two terms, e.g. _copy code:makeacopy() header.x_ will break, because very stupid parser.
+- **message msg**
+  - Creates a new message with the name provided in _msg_ (Note that, due to a limitation in the JavaScript Callout, this will not be an empty message; it is a copy of the current message object flow variable.)
 - **delete tgt**
 - **comments** are initiated by a # at any point in a line
 
@@ -62,3 +64,4 @@ Message Manipulation Language
 - Externalize scripts (load from resource or URL, not just hardcoded script)
 - Potential collision if message object has same name as another variable?
 - Accept closures for doing more complex manipulation of parameters
+- Mock context, so that unit tests can be created
