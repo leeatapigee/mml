@@ -27,6 +27,7 @@ Message Manipulation Language
 **Commands**
 
 - **copy src tgt**
+- **copy "literal" tgt**
 - **copy code:(new Date()).toString() tgt**
   - Currently accepts code in the src term only, indicated by the leading "code:".  This will break if the code contains the contents of the other two terms, e.g. _copy code:makeacopy() header.x_ will break, because very stupid parser.
 - **message msg**
@@ -54,7 +55,6 @@ Message Manipulation Language
 - Fix problem with storing message objects created here
 
 
-- Support for literals
 - Support for regex
 - Support for form and body/payload variables
 - Support for JSONPath

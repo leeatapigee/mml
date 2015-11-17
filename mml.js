@@ -4,6 +4,7 @@
  * ExtractVariable and AssignMessage
  */
 
+var msgs = []                     // track created message objects
 
 // retrieve DSL script from the JavaScript callout policy's script property
 var script = properties.script
@@ -21,6 +22,8 @@ lines.forEach(function(line) {
 
   if( line.length !== 0 ) {
     var terms = line.split(' ')	// break the line up into terms
+
+    // extract code, if present
     if( line.indexOf('function:') >=0 || line.indexOf('code:') >= 0 ) {
       // TODO this quick hack will fail if the the other terms appear within the code block
       // reparse to isolate code
@@ -37,6 +40,7 @@ lines.forEach(function(line) {
         // TODO not sure how to create a new Message object in JavaScript, so the
         // TODO current implementation makes a copy of the current message object
         context.setVariable(terms[1], context.getVariable('message'))
+        msgs.push(terms[1])
         break
 
       case 'copy':
@@ -82,9 +86,8 @@ function getValue(term) {
 // the AssignMessage portion of the script
 // sets target to value
 function setValue(target, value) {
+  target = evaluate(target)
   print('setValue:', target, value)
-  //var tgt = evaluate(target)
-  //var val = evaluate(value)
 
   // target and value are both "scalars"
 	print('setting value of', target, 'to', value)
@@ -100,10 +103,23 @@ function evaluate(term) {
 
   var sections = term.split('.')
 
-  if( false ) {
-    // readability hack to make everything following this begin with an "else"
+  // literal
+  if( (term[0] === '"' && term[term.length-1] === '"') ||
+      (term[0] === "'" && term[term.length-1] === "'") ) {
+    var literal = term.slice(1, term.length-1)         // get rid of the quotes
+    print('literal', literal)
+    result = {value:literal}
   }
 
+  // reference to a new message object
+  else if( sections.length && msgs.indexOf(sections[0]) > -1 ) {
+    // if the term refers to a message variable created in this script...
+    var theRest = term.slice(sections[0].length+1)	  // everything after the name of the message variable and the period
+    var msgPart = evaluate(theRest)                   // run through evaluate with the message part string
+    result = msgPart.replace(/^message/, sections[0]) // after expansion, reinsert the name of the correct message
+  }
+
+  // shorthand notation for headers
   else if( term.indexOf('header.') === 0 )
     result = 'message.' + term
   else if( term.indexOf('hdr.') === 0 )
@@ -111,6 +127,7 @@ function evaluate(term) {
   else if( term.indexOf('h.') === 0 )
     result = 'message.header.' + term.substr(2)
 
+  // shorthand notation for queryparams
   else if( term.indexOf('queryparam.') === 0 )
     result = 'message.' + term
   else if( term.indexOf('query.') === 0 )
@@ -120,6 +137,7 @@ function evaluate(term) {
   else if( term.indexOf('q.') === 0 )
     result = 'message.queryparam.' + term.substr(2)
 
+  // code snippet
   else if( term.indexOf('function:') === 0 || term.indexOf('code:') === 0 ) {
     var colon = term.indexOf(':')
     var code = term.slice(colon+1)
