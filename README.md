@@ -17,6 +17,7 @@ Message Manipulation Language
         copy myverb request.header.abc   # create a header
         copy request.queryparam.x request.header.xquery   # copy a queryparam to a header
         message created
+        jsonpath request "$..author" firstAuthor
         copy queryparam.x created.header.xQuery
         copy code:(new Date()).toString() created.header.computedDate
         delete q.x
@@ -32,6 +33,11 @@ Message Manipulation Language
   - Currently accepts code in the src term only, indicated by the leading "code:".  This will break if the code contains the contents of the other two terms, e.g. _copy code:makeacopy() header.x_ will break, because very stupid parser.
 - **message msg**
   - Creates a new message with the name provided in _msg_ (Note that, due to a limitation in the JavaScript Callout, this will not be an empty message; it is a copy of the current message object flow variable.)
+- **jsonpath inputMsg expression tgtVar**
+  - Evaluates the expression on the JSON body of inputMsg and puts the result into tgtVar.
+    - tgtVar only supports variables at the moment; headers are not supported yet.
+    - If the JSONPath expression returns an array, you will only get the first element of the array.
+    - This is a first pass at JSONPath symtax and implementation.  It needs to be refined.
 - **delete tgt**
 - **comments** are initiated by a # at any point in a line
 
